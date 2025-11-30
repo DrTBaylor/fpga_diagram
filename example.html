@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive FPGA FSM Diagram</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* SVG Styles */
+        svg {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 100%;
+            height: auto;
+        }
+
+        .wire {
+            fill: none;
+            stroke: #333;
+            stroke-width: 2;
+        }
+
+        .component {
+            fill: #fff;
+            stroke: #333;
+            stroke-width: 2;
+        }
+
+        .lut {
+            fill: #e3f2fd; /* Light Blue */
+            cursor: pointer;
+            transition: fill 0.2s;
+        }
+
+        .lut:hover {
+            fill: #bbdefb;
+            stroke: #1565c0;
+        }
+
+        .mux {
+            fill: #fff9c4; /* Light Yellow */
+        }
+
+        .ff {
+            fill: #f3e5f5; /* Light Purple */
+        }
+
+        text {
+            font-family: monospace;
+            font-size: 14px;
+            fill: #333;
+            pointer-events: none; /* Let clicks pass through text to the rect */
+        }
+
+        .label {
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .highlight {
+            background-color: #fff9c4;
+            font-weight: bold;
+        }
+        
+        .instruction {
+            margin-bottom: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>FPGA Implementation: Finite State Machine</h1>
+    <p class="instruction">Click on any blue <strong>LUT</strong> to see its internal programming (Truth Table).</p>
+
+    <div class="container">
+        <svg width="800" height="600" viewBox="0 0 800 600">
+            <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                    <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+                </marker>
+            </defs>
+
+            <g transform="translate(50, 50)">
+                <text x="-30" y="30" class="label" fill="red">Q2 Next</text>
+                
+                <g class="lut-group" onclick="showModal('lut-q2-top')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                    <line x1="60" y1="30" x2="100" y2="30" class="wire" />
+                </g>
+
+                <g class="lut-group" transform="translate(0, 80)" onclick="showModal('lut-q2-bot')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                     <line x1="60" y1="30" x2="100" y2="90" class="wire" /> </g>
+
+                <g transform="translate(100, 30)">
+                    <polygon points="0,0 30,10 30,70 0,80" class="component mux" />
+                    <text x="5" y="45">Mux</text>
+                    <text x="10" y="-10">Q2 (Sel)</text>
+                    <line x1="15" y1="-5" x2="15" y2="10" class="wire" marker-end="url(#arrow)"/>
+                    <line x1="30" y1="40" x2="60" y2="40" class="wire" marker-end="url(#arrow)"/>
+                </g>
+
+                <g transform="translate(160, 10)">
+                    <rect x="0" y="0" width="50" height="60" class="component ff" />
+                    <text x="10" y="35">FF</text>
+                    <polygon points="0,50 10,55 0,60" fill="none" stroke="#333" /> <line x1="50" y1="30" x2="80" y2="30" class="wire" marker-end="url(#arrow)"/>
+                    <text x="85" y="35" class="label" fill="red">Q2</text>
+                </g>
+            </g>
+
+            <g transform="translate(50, 220)">
+                <text x="-30" y="30" class="label" fill="red">Q1 Next</text>
+
+                <g class="lut-group" onclick="showModal('lut-q1-top')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                    <line x1="60" y1="30" x2="100" y2="30" class="wire" />
+                </g>
+
+                <g class="lut-group" transform="translate(0, 80)" onclick="showModal('lut-q1-bot')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                    <line x1="60" y1="30" x2="100" y2="90" class="wire" />
+                </g>
+
+                <g transform="translate(100, 30)">
+                    <polygon points="0,0 30,10 30,70 0,80" class="component mux" />
+                    <text x="5" y="45">Mux</text>
+                    <text x="10" y="-10">Q2 (Sel)</text>
+                    <line x1="15" y1="-5" x2="15" y2="10" class="wire" marker-end="url(#arrow)"/>
+                    <line x1="30" y1="40" x2="60" y2="40" class="wire" marker-end="url(#arrow)"/>
+                </g>
+
+                <g transform="translate(160, 10)">
+                    <rect x="0" y="0" width="50" height="60" class="component ff" />
+                    <text x="10" y="35">FF</text>
+                    <polygon points="0,50 10,55 0,60" fill="none" stroke="#333" />
+                    <line x1="50" y1="30" x2="80" y2="30" class="wire" marker-end="url(#arrow)"/>
+                    <text x="85" y="35" class="label" fill="red">Q1</text>
+                </g>
+            </g>
+
+            <g transform="translate(50, 400)">
+                <text x="-30" y="30" class="label" fill="red">Output Z</text>
+
+                <g class="lut-group" onclick="showModal('lut-z-top')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                    <line x1="60" y1="30" x2="100" y2="30" class="wire" />
+                </g>
+
+                <g class="lut-group" transform="translate(0, 80)" onclick="showModal('lut-z-bot')">
+                    <rect x="0" y="0" width="60" height="60" class="component lut" />
+                    <text x="15" y="35">LUT</text>
+                    <text x="-20" y="20">Q1</text>
+                    <text x="-20" y="50">x</text>
+                    <line x1="-30" y1="20" x2="0" y2="20" class="wire" />
+                    <line x1="-30" y1="50" x2="0" y2="50" class="wire" />
+                    <line x1="60" y1="30" x2="100" y2="90" class="wire" />
+                </g>
+
+                <g transform="translate(100, 30)">
+                    <polygon points="0,0 30,10 30,70 0,80" class="component mux" />
+                    <text x="5" y="45">Mux</text>
+                    <text x="10" y="-10">Q2 (Sel)</text>
+                    <line x1="15" y1="-5" x2="15" y2="10" class="wire" marker-end="url(#arrow)"/>
+                    <line x1="30" y1="40" x2="60" y2="40" class="wire" marker-end="url(#arrow)"/>
+                    <text x="65" y="45" class="label" fill="red">Z</text>
+                </g>
+            </g>
+
+            <g transform="translate(500, 100)">
+                <rect x="0" y="0" width="250" height="300" rx="10" fill="#fff" stroke="#ccc" stroke-dasharray="5,5"/>
+                <text x="20" y="30" font-weight="bold">Reference: State Logic</text>
+                
+                <text x="20" y="60">State A (00): Next(00/01) Z=1</text>
+                <text x="20" y="90">State B (01): Next(10)    Z=0</text>
+                <text x="20" y="120">State C (10): Next(10/11) Z=1</text>
+                <text x="20" y="150">State D (11): Next(00)    Z=0</text>
+                
+                <text x="20" y="200" font-style="italic" font-size="12">
+                    Top Muxes connect to Q2.
+                </text>
+                <text x="20" y="220" font-style="italic" font-size="12">
+                   Upper LUT active when Q2=0
+                </text>
+                <text x="20" y="240" font-style="italic" font-size="12">
+                   Lower LUT active when Q2=1
+                </text>
+            </g>
+        </svg>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal">
+            <span class="close-btn" onclick="closeModal(event)">&times;</span>
+            <h2 id="modalTitle">LUT Content</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Data containing the truth tables for each LUT
+        // Logic derived from the standard State Machine in the diagram provided
+        const lutData = {
+            'lut-q2-top': {
+                title: "LUT Logic: Q2 Next (when Q2=0)",
+                desc: "This LUT calculates the next Q2 bit when current Q2 is 0 (States A and B).",
+                table: [
+                    {q1: 0, x: 0, out: 0, note: "State A(00), x=0 -> Next A(00)"},
+                    {q1: 0, x: 1, out: 0, note: "State A(00), x=1 -> Next B(01)"},
+                    {q1: 1, x: 0, out: 1, note: "State B(01), x=0 -> Next C(10)"},
+                    {q1: 1, x: 1, out: 1, note: "State B(01), x=1 -> Next C(10)"}
+                ]
+            },
+            'lut-q2-bot': {
+                title: "LUT Logic: Q2 Next (when Q2=1)",
+                desc: "This LUT calculates the next Q2 bit when current Q2 is 1 (States C and D).",
+                table: [
+                    {q1: 0, x: 0, out: 1, note: "State C(10), x=0 -> Next C(10)"},
+                    {q1: 0, x: 1, out: 1, note: "State C(10), x=1 -> Next D(11)"},
+                    {q1: 1, x: 0, out: 0, note: "State D(11), x=0 -> Next A(00)"},
+                    {q1: 1, x: 1, out: 0, note: "State D(11), x=1 -> Next A(00)"}
+                ]
+            },
+            'lut-q1-top': {
+                title: "LUT Logic: Q1 Next (when Q2=0)",
+                desc: "Calculates the next Q1 bit when current Q2 is 0.",
+                table: [
+                    {q1: 0, x: 0, out: 0, note: "State A(00), x=0 -> Next A(00)"},
+                    {q1: 0, x: 1, out: 1, note: "State A(00), x=1 -> Next B(01)"},
+                    {q1: 1, x: 0, out: 0, note: "State B(01), x=0 -> Next C(10)"},
+                    {q1: 1, x: 1, out: 0, note: "State B(01), x=1 -> Next C(10)"}
+                ]
+            },
+            'lut-q1-bot': {
+                title: "LUT Logic: Q1 Next (when Q2=1)",
+                desc: "Calculates the next Q1 bit when current Q2 is 1.",
+                table: [
+                    {q1: 0, x: 0, out: 0, note: "State C(10), x=0 -> Next C(10)"},
+                    {q1: 0, x: 1, out: 1, note: "State C(10), x=1 -> Next D(11)"},
+                    {q1: 1, x: 0, out: 0, note: "State D(11), x=0 -> Next A(00)"},
+                    {q1: 1, x: 1, out: 0, note: "State D(11), x=1 -> Next A(00)"}
+                ]
+            },
+            'lut-z-top': {
+                title: "LUT Logic: Output Z (when Q2=0)",
+                desc: "Determines Output Z when in State A or B.",
+                table: [
+                    {q1: 0, x: 0, out: 1, note: "State A(00) -> Z=1"},
+                    {q1: 0, x: 1, out: 1, note: "State A(00) -> Z=1"},
+                    {q1: 1, x: 0, out: 0, note: "State B(01) -> Z=0"},
+                    {q1: 1, x: 1, out: 0, note: "State B(01) -> Z=0"}
+                ]
+            },
+            'lut-z-bot': {
+                title: "LUT Logic: Output Z (when Q2=1)",
+                desc: "Determines Output Z when in State C or D.",
+                table: [
+                    {q1: 0, x: 0, out: 1, note: "State C(10) -> Z=1"},
+                    {q1: 0, x: 1, out: 1, note: "State C(10) -> Z=1"},
+                    {q1: 1, x: 0, out: 0, note: "State D(11) -> Z=0"},
+                    {q1: 1, x: 1, out: 0, note: "State D(11) -> Z=0"}
+                ]
+            }
+        };
+
+        function showModal(lutId) {
+            const data = lutData[lutId];
+            if (!data) return;
+
+            document.getElementById('modalTitle').innerText = data.title;
+            
+            let html = `<p>${data.desc}</p>`;
+            html += `<table>
+                        <thead>
+                            <tr>
+                                <th>Q1</th>
+                                <th>x</th>
+                                <th>LUT Out</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+            
+            data.table.forEach(row => {
+                html += `<tr>
+                            <td>${row.q1}</td>
+                            <td>${row.x}</td>
+                            <td class="highlight">${row.out}</td>
+                            <td style="font-size: 12px; text-align:left;">${row.note}</td>
+                         </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function closeModal(event) {
+            // Close if clicking the overlay or the close button
+            if (event.target.id === 'modalOverlay' || event.target.className === 'close-btn') {
+                document.getElementById('modalOverlay').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
