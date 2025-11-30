@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPGA Architecture - Interactive Diagram</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: white;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 1024px) {
+      .main-layout {
+        flex-direction: row;
+      }
+    }
+
+    .diagram-panel {
+      flex: 1;
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .diagram-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Interactive component styles */
+    .component-group {
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .component-group:hover {
+      opacity: 0.85;
+    }
+
+    .clb-group:hover rect:first-child,
+    .bram-group:hover rect:first-child,
+    .iob-group:hover rect:first-child {
+      filter: brightness(1.2);
+    }
+
+    .component-group.selected {
+      filter: brightness(1.2);
+    }
+
+    /* Info Panel */
+    .info-panel {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (min-width: 1024px) {
+      .info-panel {
+        width: 320px;
+      }
+    }
+
+    .color-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      transition: background-color 0.3s;
+    }
+
+    .info-title {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 0.75rem;
+    }
+
+    .info-description {
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .info-section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .details-list {
+      list-style: none;
+    }
+
+    .details-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .bullet {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .back-btn:hover {
+      color: #cbd5e1;
+    }
+
+    .overview-box {
+      background: rgba(51, 65, 85, 0.5);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .overview-box h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+    }
+
+    .overview-box p {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .hint {
+      color: #64748b;
+      font-size: 0.85rem;
+      font-style: italic;
+      margin-top: 1rem;
+    }
+
+    .highlight {
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    /* Quick reference cards */
+    .quick-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .quick-cards {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .quick-cards {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+
+    .quick-card {
+      padding: 0.75rem;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.2s;
+      border: none;
+      border-left: 4px solid;
+    }
+
+    .quick-card:hover {
+      transform: scale(1.05);
+    }
+
+    .quick-card.selected {
+      box-shadow: 0 0 0 2px white;
+    }
+
+    .quick-card-title {
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-card-subtitle {
+      font-size: 0.65rem;
+      color: #94a3b8;
+      margin-top: 0.25rem;
+    }
+
+    /* Component-specific colors */
+    .clb-color { background-color: #3b82f6; }
+    .interconnect-color { background-color: #10b981; }
+    .iob-color { background-color: #f59e0b; }
+    .bram-color { background-color: #8b5cf6; }
+    .clock-color { background-color: #ec4899; }
+    .config-color { background-color: #6b7280; }
+
+    .card-clb { background-color: rgba(59, 130, 246, 0.2); border-left-color: #3b82f6; }
+    .card-interconnect { background-color: rgba(16, 185, 129, 0.2); border-left-color: #10b981; }
+    .card-iob { background-color: rgba(245, 158, 11, 0.2); border-left-color: #f59e0b; }
+    .card-bram { background-color: rgba(139, 92, 246, 0.2); border-left-color: #8b5cf6; }
+    .card-clock { background-color: rgba(236, 72, 153, 0.2); border-left-color: #ec4899; }
+    .card-config { background-color: rgba(107, 114, 128, 0.2); border-left-color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>FPGA Architecture</h1>
+    <p class="subtitle">Click on any component to learn more</p>
+
+    <div class="main-layout">
+      <!-- Diagram Panel -->
+      <div class="diagram-panel">
+        <svg class="diagram-svg" viewBox="0 0 500 500">
+          <!-- Background -->
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#334155" stroke-width="0.5" />
+            </pattern>
+          </defs>
+          <rect width="500" height="500" fill="#1e293b" />
+          <rect width="500" height="500" fill="url(#grid)" />
+
+          <!-- Clock Distribution Network -->
+          <g class="component-group" data-component="clock">
+            <line x1="250" y1="30" x2="250" y2="470" stroke="#ec4899" stroke-width="3" stroke-dasharray="8,4" />
+            <line x1="30" y1="250" x2="470" y2="250" stroke="#ec4899" stroke-width="3" stroke-dasharray="8,4" />
+            <circle cx="250" cy="250" r="12" fill="#ec4899" />
+            <text x="250" y="254" text-anchor="middle" font-size="8" fill="white" font-weight="bold">CLK</text>
+            <text x="250" y="18" text-anchor="middle" font-size="10" fill="#ec4899">Clock Network</text>
+          </g>
+
+          <!-- Interconnect Lines -->
+          <g class="component-group" data-component="interconnect">
+            <!-- Horizontal routing channels -->
+            <line x1="80" y1="120" x2="420" y2="120" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="80" y1="200" x2="420" y2="200" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="80" y1="300" x2="420" y2="300" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="80" y1="380" x2="420" y2="380" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <!-- Vertical routing channels -->
+            <line x1="120" y1="80" x2="120" y2="420" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="200" y1="80" x2="200" y2="420" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="300" y1="80" x2="300" y2="420" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <line x1="380" y1="80" x2="380" y2="420" stroke="#10b981" stroke-width="2" opacity="0.6" />
+            <!-- Switch boxes -->
+            <rect x="114" y="114" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="114" y="194" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="114" y="294" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="114" y="374" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="194" y="114" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="194" y="194" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="194" y="294" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="194" y="374" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="294" y="114" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="294" y="194" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="294" y="294" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="294" y="374" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="374" y="114" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="374" y="194" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="374" y="294" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+            <rect x="374" y="374" width="12" height="12" fill="#10b981" rx="2" opacity="0.8" />
+          </g>
+
+          <!-- CLBs -->
+          <g class="component-group clb-group" data-component="clb" transform="translate(100, 105)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(210, 105)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(320, 105)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(100, 215)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(320, 215)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(100, 325)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(210, 325)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <g class="component-group clb-group" data-component="clb" transform="translate(320, 325)">
+            <rect width="80" height="70" fill="#3b82f6" rx="4" />
+            <rect x="4" y="4" width="72" height="62" fill="#1e3a5f" rx="2" />
+            <rect x="8" y="8" width="34" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="25" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">LUT</text>
+            <rect x="48" y="8" width="24" height="24" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="60" y="23" text-anchor="middle" font-size="7" fill="#1e40af" font-weight="bold">FF</text>
+            <polygon points="25,40 35,48 25,56" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" />
+            <text x="45" y="51" font-size="6" fill="#1e40af">MUX</text>
+            <rect x="55" y="40" width="16" height="16" fill="#dbeafe" stroke="#3b82f6" stroke-width="1" rx="2" />
+            <text x="63" y="51" text-anchor="middle" font-size="5" fill="#1e40af">Carry</text>
+          </g>
+
+          <!-- Block RAMs -->
+          <g class="component-group bram-group" data-component="bram" transform="translate(180, 140)">
+            <rect width="40" height="60" fill="#8b5cf6" rx="4" />
+            <rect x="4" y="4" width="32" height="52" fill="#4c1d95" rx="2" />
+            <text x="20" y="25" text-anchor="middle" font-size="7" fill="white" font-weight="bold">Block</text>
+            <text x="20" y="35" text-anchor="middle" font-size="7" fill="white" font-weight="bold">RAM</text>
+            <rect x="8" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="8" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="8" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+          </g>
+
+          <g class="component-group bram-group" data-component="bram" transform="translate(290, 310)">
+            <rect width="40" height="60" fill="#8b5cf6" rx="4" />
+            <rect x="4" y="4" width="32" height="52" fill="#4c1d95" rx="2" />
+            <text x="20" y="25" text-anchor="middle" font-size="7" fill="white" font-weight="bold">Block</text>
+            <text x="20" y="35" text-anchor="middle" font-size="7" fill="white" font-weight="bold">RAM</text>
+            <rect x="8" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="40" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="8" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="43" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="8" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="14" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="20" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+            <rect x="26" y="46" width="4" height="2" fill="#a78bfa" rx="0.5" />
+          </g>
+
+          <!-- I/O Blocks - Top -->
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="60" y="45" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="80" y="62" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="80" y1="45" x2="80" y2="35" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="80" cy="32" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="140" y="45" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="160" y="62" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="160" y1="45" x2="160" y2="35" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="160" cy="32" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="230" y="45" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="250" y="62" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="250" y1="45" x2="250" y2="35" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="250" cy="32" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="320" y="45" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="340" y="62" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="340" y1="45" x2="340" y2="35" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="340" cy="32" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="400" y="45" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="420" y="62" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="420" y1="45" x2="420" y2="35" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="420" cy="32" r="4" fill="#fbbf24" />
+          </g>
+
+          <!-- I/O Blocks - Bottom -->
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="60" y="430" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="80" y="447" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="80" y1="455" x2="80" y2="465" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="80" cy="468" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="140" y="430" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="160" y="447" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="160" y1="455" x2="160" y2="465" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="160" cy="468" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="230" y="430" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="250" y="447" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="250" y1="455" x2="250" y2="465" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="250" cy="468" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="320" y="430" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="340" y="447" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="340" y1="455" x2="340" y2="465" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="340" cy="468" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="400" y="430" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="420" y="447" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="420" y1="455" x2="420" y2="465" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="420" cy="468" r="4" fill="#fbbf24" />
+          </g>
+
+          <!-- I/O Blocks - Left -->
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="30" y="88" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="50" y="105" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="30" y1="100" x2="20" y2="100" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="17" cy="100" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="30" y="168" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="50" y="185" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="30" y1="180" x2="20" y2="180" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="17" cy="180" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="30" y="258" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="50" y="275" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="30" y1="270" x2="20" y2="270" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="17" cy="270" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="30" y="348" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="50" y="365" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="30" y1="360" x2="20" y2="360" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="17" cy="360" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="30" y="408" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="50" y="425" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="30" y1="420" x2="20" y2="420" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="17" cy="420" r="4" fill="#fbbf24" />
+          </g>
+
+          <!-- I/O Blocks - Right -->
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="430" y="88" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="450" y="105" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="470" y1="100" x2="480" y2="100" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="483" cy="100" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="430" y="168" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="450" y="185" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="470" y1="180" x2="480" y2="180" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="483" cy="180" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="430" y="258" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="450" y="275" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="470" y1="270" x2="480" y2="270" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="483" cy="270" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="430" y="348" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="450" y="365" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="470" y1="360" x2="480" y2="360" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="483" cy="360" r="4" fill="#fbbf24" />
+          </g>
+          <g class="component-group iob-group" data-component="iob">
+            <rect x="430" y="408" width="40" height="25" fill="#f59e0b" rx="3" />
+            <text x="450" y="425" text-anchor="middle" font-size="8" fill="#78350f" font-weight="bold">IOB</text>
+            <line x1="470" y1="420" x2="480" y2="420" stroke="#f59e0b" stroke-width="2" />
+            <circle cx="483" cy="420" r="4" fill="#fbbf24" />
+          </g>
+
+          <!-- Configuration Memory indicator -->
+          <g class="component-group" data-component="config">
+            <rect x="10" y="10" width="80" height="20" fill="#6b7280" rx="3" />
+            <text x="50" y="24" text-anchor="middle" font-size="8" fill="white" font-weight="bold">Config SRAM</text>
+          </g>
+
+          <!-- Legend -->
+          <g transform="translate(380, 10)">
+            <rect x="0" y="0" width="110" height="120" fill="#0f172a" rx="4" opacity="0.9" />
+            <text x="55" y="15" text-anchor="middle" font-size="9" fill="white" font-weight="bold">Legend</text>
+            <rect x="8" y="25" width="12" height="10" fill="#3b82f6" rx="2" />
+            <text x="26" y="34" font-size="8" fill="#94a3b8">Logic Blocks</text>
+            <rect x="8" y="40" width="12" height="10" fill="#10b981" rx="2" />
+            <text x="26" y="49" font-size="8" fill="#94a3b8">Interconnect</text>
+            <rect x="8" y="55" width="12" height="10" fill="#f59e0b" rx="2" />
+            <text x="26" y="64" font-size="8" fill="#94a3b8">I/O Blocks</text>
+            <rect x="8" y="70" width="12" height="10" fill="#8b5cf6" rx="2" />
+            <text x="26" y="79" font-size="8" fill="#94a3b8">Block RAM</text>
+            <rect x="8" y="85" width="12" height="10" fill="#ec4899" rx="2" />
+            <text x="26" y="94" font-size="8" fill="#94a3b8">Clock Network</text>
+            <rect x="8" y="100" width="12" height="10" fill="#6b7280" rx="2" />
+            <text x="26" y="109" font-size="8" fill="#94a3b8">Config Memory</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Info Panel -->
+      <div class="info-panel">
+        <div id="color-bar" class="color-bar" style="background-color: #3b82f6;"></div>
+        <div id="info-content">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Reference Cards -->
+    <div class="quick-cards">
+      <button class="quick-card card-clb" data-component="clb">
+        <div class="quick-card-title">Logic Blocks</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+      <button class="quick-card card-interconnect" data-component="interconnect">
+        <div class="quick-card-title">Interconnect</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+      <button class="quick-card card-iob" data-component="iob">
+        <div class="quick-card-title">I/O Blocks</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+      <button class="quick-card card-bram" data-component="bram">
+        <div class="quick-card-title">Block RAM</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+      <button class="quick-card card-clock" data-component="clock">
+        <div class="quick-card-title">Clock Network</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+      <button class="quick-card card-config" data-component="config">
+        <div class="quick-card-title">Config Memory</div>
+        <div class="quick-card-subtitle">Click to learn</div>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Component information database
+    const componentInfo = {
+      clb: {
+        title: "Configurable Logic Block (CLB)",
+        description: "The fundamental computational unit of an FPGA. Contains Look-Up Tables (LUTs) that can implement any Boolean function, flip-flops for sequential logic, and multiplexers for routing.",
+        details: [
+          "LUTs: Typically 4-6 inputs, implement combinational logic",
+          "Flip-flops: Store state for sequential circuits",
+          "Carry chains: Fast arithmetic operations",
+          "Multiplexers: Select between different signal paths"
+        ],
+        color: "#3b82f6"
+      },
+      interconnect: {
+        title: "Programmable Interconnect",
+        description: "The routing network that connects all components together. Consumes 60-80% of FPGA area and significantly impacts timing.",
+        details: [
+          "Switch boxes: Connect routing channels at intersections",
+          "Connection boxes: Link CLBs to routing channels",
+          "Routing channels: Horizontal and vertical wire segments",
+          "Programmable switches: SRAM-controlled pass transistors"
+        ],
+        color: "#10b981"
+      },
+      iob: {
+        title: "I/O Block (IOB)",
+        description: "Interface between internal FPGA logic and external pins. Handles voltage levels, signal integrity, and various I/O standards.",
+        details: [
+          "Input/output buffers: Drive external loads",
+          "Voltage translation: Support multiple I/O standards",
+          "Programmable pull-up/pull-down resistors",
+          "Registered I/O: Optional flip-flops for timing"
+        ],
+        color: "#f59e0b"
+      },
+      bram: {
+        title: "Block RAM (BRAM)",
+        description: "Dedicated memory blocks embedded throughout the FPGA. Much more efficient than implementing memory with LUTs.",
+        details: [
+          "Typical sizes: 18Kb or 36Kb blocks",
+          "Dual-port: Read/write from two locations simultaneously",
+          "Configurable width and depth",
+          "Can implement FIFOs, ROMs, and register files"
+        ],
+        color: "#8b5cf6"
+      },
+      clock: {
+        title: "Clock Distribution Network",
+        description: "Specialized low-skew routing for clock signals. Ensures all flip-flops receive the clock at nearly the same time.",
+        details: [
+          "Global clock buffers: Drive clocks across entire chip",
+          "Regional clocks: Lower skew for local areas",
+          "PLL/DCM: Frequency synthesis and phase adjustment",
+          "Clock enables: Gating for power reduction"
+        ],
+        color: "#ec4899"
+      },
+      config: {
+        title: "Configuration Memory",
+        description: "SRAM cells that store the programming of the FPGA. Every switch, LUT content, and setting is controlled by these bits.",
+        details: [
+          "SRAM-based: Volatile, reprogrammable",
+          "Loaded at power-up from external flash",
+          "Bitstream: The file containing all config data",
+          "Partial reconfiguration: Change parts while running"
+        ],
+        color: "#6b7280"
+      }
+    };
+
+    // Current selected component
+    let selectedComponent = null;
+
+    // DOM elements
+    const infoContent = document.getElementById('info-content');
+    const colorBar = document.getElementById('color-bar');
+
+    // Show overview content
+    function showOverview() {
+      colorBar.style.backgroundColor = '#3b82f6';
+      infoContent.innerHTML = `
+        <h2 class="info-title">FPGA Overview</h2>
+        <p class="info-description">
+          A <span class="highlight">Field-Programmable Gate Array</span> is an integrated circuit that can be configured after manufacturing to implement any digital logic circuit.
+        </p>
+        <p class="info-description">
+          Unlike ASICs (Application-Specific Integrated Circuits), FPGAs can be reprogrammed, making them ideal for prototyping, low-volume production, and applications requiring flexibility.
+        </p>
+        <div class="overview-box">
+          <h3>How it works</h3>
+          <p>Your HDL code (Verilog/VHDL) is synthesized into a configuration that programs the LUTs, sets routing switches, and configures I/O—all stored in SRAM cells.</p>
+        </div>
+        <p class="hint">👆 Click any component in the diagram to explore its details</p>
+      `;
+    }
+
+    // Show component details
+    function showComponent(componentId) {
+      const info = componentInfo[componentId];
+      if (!info) return;
+
+      selectedComponent = componentId;
+      colorBar.style.backgroundColor = info.color;
+
+      let detailsHtml = info.details.map(detail => `
+        <li>
+          <span class="bullet" style="background-color: ${info.color};"></span>
+          ${detail}
+        </li>
+      `).join('');
+
+      infoContent.innerHTML = `
+        <h2 class="info-title">${info.title}</h2>
+        <p class="info-description">${info.description}</p>
+        <h3 class="info-section-title">Key Points</h3>
+        <ul class="details-list">
+          ${detailsHtml}
+        </ul>
+        <button class="back-btn" onclick="showOverview(); clearSelection();">← Back to overview</button>
+      `;
+
+      // Update quick card selection
+      updateCardSelection(componentId);
+    }
+
+    // Clear visual selection
+    function clearSelection() {
+      selectedComponent = null;
+      document.querySelectorAll('.quick-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+    }
+
+    // Update quick card selection state
+    function updateCardSelection(componentId) {
+      document.querySelectorAll('.quick-card').forEach(card => {
+        if (card.dataset.component === componentId) {
+          card.classList.add('selected');
+        } else {
+          card.classList.remove('selected');
+        }
+      });
+    }
+
+    // Add click handlers to SVG component groups
+    document.querySelectorAll('.component-group').forEach(group => {
+      group.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const componentId = this.dataset.component;
+        if (componentId) {
+          showComponent(componentId);
+        }
+      });
+    });
+
+    // Add click handlers to quick cards
+    document.querySelectorAll('.quick-card').forEach(card => {
+      card.addEventListener('click', function() {
+        const componentId = this.dataset.component;
+        if (componentId) {
+          showComponent(componentId);
+        }
+      });
+    });
+
+    // Initialize with overview
+    showOverview();
+  </script>
+</body>
+</html>
